@@ -55,7 +55,6 @@ public class InvoiceExtractor {
                 } else if (matcher.group("checksum") != null) {
                     invoice.setChecksum(matcher.group("checksum"));
                 }
-
             }
         }
         {
@@ -100,34 +99,29 @@ public class InvoiceExtractor {
             if (allText.indexOf("通行费") > 0 && allText.indexOf("车牌号") > 0) {
                 invoice.setType("通行费");
             } else {
-                Pattern type00Pattern = Pattern.compile("(?<p>\\S*增值)\\S*普通发票");
+                Pattern type00Pattern = Pattern.compile("(?<p>\\S*通发票)");
                 Matcher m00 = type00Pattern.matcher(allText);
                 if (m00.find()) {
-                    invoice.setTitle(m00.group("p") + "税电子普通发票");
+                    invoice.setTitle(m00.group("p").replaceAll("(?:国|统|一|发|票|监|制)", "") + "通发票");
                     invoice.setType("普通发票");
                 } else {
-                    Pattern type01Pattern = Pattern.compile("(?<p>\\S*增值)\\S*普通发票");
+                    Pattern type01Pattern = Pattern.compile("(?<p>\\S*用发票)");
                     Matcher m01 = type01Pattern.matcher(allText);
                     if (m01.find()) {
-                        invoice.setTitle(m01.group("p") + "税电子专用发票");
+                        invoice.setTitle(m01.group("p").replaceAll("(?:国|统|一|发|票|监|制)", "") + "用发票");
                         invoice.setType("专用发票");
-                    } else {
-                        Pattern type02Pattern = Pattern.compile("(?<p>\\S*通发票)");
-                        Matcher m02 = type02Pattern.matcher(allText);
-                        if (m02.find()) {
-                            invoice.setTitle(m02.group("p").replaceAll("(?:国|统|一|发|票|监|制)", "") + "通发票");
-                            invoice.setType("普通发票");
-                        }
                     }
                 }
             }
         }
         PDFKeyWordPosition kwp = new PDFKeyWordPosition();
         Map<String, List<Position>> positionListMap = kwp
-                .getCoordinate(Arrays.asList("机器编号", "税率", "价税合计", "合计", "开票日期", "开户行及账号", "密", "码", "区"), doc);
+                .getCoordinate(Arrays.asList("机器编号", "税率", "价税合计", "合计", "开票日期", "规格型号", "开户行及账号", "密", "码", "区"), doc);
 
         PDFTextStripperByArea stripper = new PDFTextStripperByArea();
         stripper.setSortByPosition(true);
+        PDFTextStripperByArea detailStripper = new PDFTextStripperByArea();
+        detailStripper.setSortByPosition(true);
         {
             Position machineNumber;
             if (positionListMap.get("机器编号").size() > 0) {
@@ -139,6 +133,7 @@ public class InvoiceExtractor {
             Position taxRate = positionListMap.get("税率").get(0);
             Position totalAmount = positionListMap.get("价税合计").get(0);
             Position amount = positionListMap.get("合计").get(0);
+            Position model = positionListMap.get("规格型号").get(0);
             List<Position> account = positionListMap.get("开户行及账号");
             Position buyer;
             Position seller;
@@ -169,16 +164,19 @@ public class InvoiceExtractor {
                 }
             }
             {
+                int x = Math.round(model.getX()) - 10; // 用加税合计的大写金额作为x坐标的参考
+                int y = Math.round(taxRate.getY()) + 10; // 用税率的y坐标作参考
+                int h = Math.round(amount.getY()) - Math.round(taxRate.getY()) - 15; // 价税合计的y坐标减去税率的y坐标
+                detailStripper.addRegion("detail", new Rectangle(0, y, pageWidth, h));
+                stripper.addRegion("detailName", new Rectangle(0, y, x, h));
+                stripper.addRegion("detailPrice", new Rectangle(x, y, pageWidth, h));
+            }
+            {
                 int x = maqX + 10;
                 int y = Math.round(machineNumber.getY()) + 10;
                 int w = pageWidth - maqX - 10;
                 int h = Math.round(taxRate.getY() - 5) - y;
                 stripper.addRegion("password", new Rectangle(x, y, w, h));
-            }
-            {
-                int y = Math.round(taxRate.getY()) + 10; // 用税率的y坐标作参考
-                int h = Math.round(amount.getY()) - Math.round(taxRate.getY()) - 15; // 价税合计的y坐标减去税率的y坐标
-                stripper.addRegion("detail", new Rectangle(0, y, pageWidth, h));
             }
             {
                 int x = Math.round(buyer.getX()) - 15; // 开户行及账号的x为参考
@@ -196,7 +194,7 @@ public class InvoiceExtractor {
             }
         }
         stripper.extractRegions(firstPage);
-        doc.close();
+        detailStripper.extractRegions(firstPage);
 
         invoice.setPassword(StringUtils.trim(stripper.getTextForRegion("password")));
 
@@ -233,21 +231,21 @@ public class InvoiceExtractor {
                 }
             }
         }
-
         {
             List<Detail> detailList = new ArrayList<>();
-            String[] detailStringArray = stripper.getTextForRegion("detail").replaceAll("　", " ").replaceAll(" ", " ")
+            String[] detailNameStringArray = stripper.getTextForRegion("detailName").replaceAll("　", " ").replaceAll(" ", " ")
                     .split("\\n|\\r");
-            for (String detailString : detailStringArray) {
+            String[] detailPriceStringArray = stripper.getTextForRegion("detailPrice").replaceAll("　", " ").replaceAll(" ", " ")
+                    .split("\\n|\\r");
+            for (String detailString : detailPriceStringArray) {
                 Detail detail = new Detail();
+                detail.setName("");
                 String[] itemArray = detailString.split("\\s");
-                if (3 == itemArray.length) {
-                    detail.setName(itemArray[0]);
-                    detail.setAmount(new BigDecimal(itemArray[1]));
-                    detail.setTaxAmount(new BigDecimal(itemArray[2]));
+                if (2 == itemArray.length) {
+                    detail.setAmount(new BigDecimal(itemArray[0]));
+                    detail.setTaxAmount(new BigDecimal(itemArray[1]));
                     detailList.add(detail);
-                } else if (3 < itemArray.length) {
-                    detail.setName(itemArray[0]);
+                } else if (2 < itemArray.length) {
                     detail.setAmount(new BigDecimal(itemArray[itemArray.length - 3]));
                     String taxRate = itemArray[itemArray.length - 2];
                     if (taxRate.indexOf("免税") > 0 || taxRate.indexOf("不征税") > 0 || taxRate.indexOf("出口零税率") > 0
@@ -259,7 +257,7 @@ public class InvoiceExtractor {
                         detail.setTaxRate(rate.divide(new BigDecimal(100)));
                         detail.setTaxAmount(new BigDecimal(itemArray[itemArray.length - 1]));
                     }
-                    for (int j = 1; j < itemArray.length - 3; j++) {
+                    for (int j = 0; j < itemArray.length - 3; j++) {
                         if (itemArray[j].matches("^(-?\\d+)(\\.\\d+)?$")) {
                             if (null == detail.getCount()) {
                                 detail.setCount(new BigDecimal(itemArray[j]));
@@ -279,9 +277,25 @@ public class InvoiceExtractor {
                     detailList.add(detail);
                 }
             }
+
+            String[] detailStringArray = replace(detailStripper.getTextForRegion("detail")).split("\\n|\\r");
+            int i = 0, j = 0;
+            Detail lastDetail = null;
+            for (String detailString : detailStringArray) {
+                if (detailString.matches("\\S+\\d*(%|免税|不征税|出口零税率|普通零税率)\\S*")) {
+                    lastDetail = detailList.get(j);
+                    lastDetail.setName(detailNameStringArray[i]);
+                    j++;
+                } else if (null != lastDetail && StringUtils.isNotBlank(detailNameStringArray[i])) {
+                    lastDetail.setName(lastDetail.getName() + detailNameStringArray[i]);
+                }
+                i++;
+            }
             invoice.setDetailList(detailList);
         }
+        doc.close();
         return invoice;
+
     }
 
     public static String replace(String str) {
