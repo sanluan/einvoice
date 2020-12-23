@@ -99,13 +99,13 @@ public class InvoiceExtractor {
             if (allText.indexOf("通行费") > 0 && allText.indexOf("车牌号") > 0) {
                 invoice.setType("通行费");
             } else {
-                Pattern type00Pattern = Pattern.compile("(?<p>\\S*通发票)");
+                Pattern type00Pattern = Pattern.compile("(?<p>\\S*)通发票");
                 Matcher m00 = type00Pattern.matcher(allText);
                 if (m00.find()) {
                     invoice.setTitle(m00.group("p").replaceAll("(?:国|统|一|发|票|监|制)", "") + "通发票");
                     invoice.setType("普通发票");
                 } else {
-                    Pattern type01Pattern = Pattern.compile("(?<p>\\S*用发票)");
+                    Pattern type01Pattern = Pattern.compile("(?<p>\\S*)用发票");
                     Matcher m01 = type01Pattern.matcher(allText);
                     if (m01.find()) {
                         invoice.setTitle(m01.group("p").replaceAll("(?:国|统|一|发|票|监|制)", "") + "用发票");
