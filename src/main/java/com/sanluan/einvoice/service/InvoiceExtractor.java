@@ -195,6 +195,7 @@ public class InvoiceExtractor {
         }
         stripper.extractRegions(firstPage);
         detailStripper.extractRegions(firstPage);
+        doc.close();
 
         invoice.setPassword(StringUtils.trim(stripper.getTextForRegion("password")));
 
@@ -293,7 +294,7 @@ public class InvoiceExtractor {
             }
             invoice.setDetailList(detailList);
         }
-        doc.close();
+        
         return invoice;
 
     }
