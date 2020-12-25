@@ -165,8 +165,8 @@ public class InvoiceExtractor {
             }
             {
                 int x = Math.round(model.getX()) - 10; // 用加税合计的大写金额作为x坐标的参考
-                int y = Math.round(taxRate.getY()) + 10; // 用税率的y坐标作参考
-                int h = Math.round(amount.getY()) - Math.round(taxRate.getY()) - 15; // 价税合计的y坐标减去税率的y坐标
+                int y = Math.round(taxRate.getY()) + 5; // 用税率的y坐标作参考
+                int h = Math.round(amount.getY()) - Math.round(taxRate.getY()) - 30; // 价税合计的y坐标减去税率的y坐标
                 detailStripper.addRegion("detail", new Rectangle(0, y, pageWidth, h));
                 stripper.addRegion("detailName", new Rectangle(0, y, x, h));
                 stripper.addRegion("detailPrice", new Rectangle(x, y, pageWidth, h));
