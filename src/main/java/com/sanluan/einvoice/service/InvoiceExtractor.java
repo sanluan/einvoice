@@ -58,7 +58,7 @@ public class InvoiceExtractor {
             }
         }
         {
-            String reg = "合计¥(?<amount>\\S*)¥(?<taxAmount>\\S*)\\s";
+            String reg = "合计¥(?<amount>[^ \\f\\n\\r\\t\\v\\*]*)(?:¥(?<taxAmount>\\S*)|\\*+)\\s";
             Pattern pattern = Pattern.compile(reg);
             Matcher matcher = pattern.matcher(allText);
             if (matcher.find()) {
@@ -164,9 +164,9 @@ public class InvoiceExtractor {
                 }
             }
             {
-                int x = Math.round(model.getX()) - 10; // 用加税合计的大写金额作为x坐标的参考
+                int x = Math.round(model.getX()) - 10;
                 int y = Math.round(taxRate.getY()) + 5; // 用税率的y坐标作参考
-                int h = Math.round(amount.getY()) - Math.round(taxRate.getY()) - 30; // 价税合计的y坐标减去税率的y坐标
+                int h = Math.round(amount.getY()) - Math.round(taxRate.getY()) - 20; // 价税合计的y坐标减去税率的y坐标
                 detailStripper.addRegion("detail", new Rectangle(0, y, pageWidth, h));
                 stripper.addRegion("detailName", new Rectangle(0, y, x, h));
                 stripper.addRegion("detailPrice", new Rectangle(x, y, pageWidth, h));
@@ -233,15 +233,14 @@ public class InvoiceExtractor {
             }
         }
         {
+            List<String> skipList = new ArrayList<>();
             List<Detail> detailList = new ArrayList<>();
-            String[] detailNameStringArray = stripper.getTextForRegion("detailName").replaceAll("　", " ").replaceAll(" ", " ")
-                    .split("\\n|\\r");
             String[] detailPriceStringArray = stripper.getTextForRegion("detailPrice").replaceAll("　", " ").replaceAll(" ", " ")
-                    .split("\\n|\\r");
+                    .replaceAll("\r", "").split("\\n");
             for (String detailString : detailPriceStringArray) {
                 Detail detail = new Detail();
                 detail.setName("");
-                String[] itemArray = detailString.split("\\s");
+                String[] itemArray = StringUtils.split(detailString, "\s");
                 if (2 == itemArray.length) {
                     detail.setAmount(new BigDecimal(itemArray[0]));
                     detail.setTaxAmount(new BigDecimal(itemArray[1]));
@@ -270,31 +269,57 @@ public class InvoiceExtractor {
                                 detail.setUnit(itemArray[j + 1]);
                                 detail.setModel(itemArray[j]);
                                 j++;
+                            } else if (itemArray[j].length() > 2) {
+                                detail.setModel(itemArray[j]);
                             } else {
                                 detail.setUnit(itemArray[j]);
                             }
                         }
                     }
                     detailList.add(detail);
+                } else {
+                    skipList.add(detailString);
                 }
             }
 
-            String[] detailStringArray = replace(detailStripper.getTextForRegion("detail")).split("\\n|\\r");
-            int i = 0, j = 0;
+            String[] detailNameStringArray = stripper.getTextForRegion("detailName").replaceAll("　", " ").replaceAll(" ", " ")
+                    .replaceAll("\r", "").split("\\n");
+            String[] detailStringArray = replace(detailStripper.getTextForRegion("detail")).replaceAll("\r", "").split("\\n");
+            int i = 0, j = 0, h = 0, m = 0;
             Detail lastDetail = null;
             for (String detailString : detailStringArray) {
-                if (detailString.matches("\\S+\\d*(%|免税|不征税|出口零税率|普通零税率)\\S*")) {
-                    lastDetail = detailList.get(j);
-                    lastDetail.setName(detailNameStringArray[i]);
-                    j++;
-                } else if (null != lastDetail && StringUtils.isNotBlank(detailNameStringArray[i])) {
-                    lastDetail.setName(lastDetail.getName() + detailNameStringArray[i]);
+                if (m < detailNameStringArray.length) {
+                    if (detailString.matches("\\S+\\d*(%|免税|不征税|出口零税率|普通零税率)\\S*")
+                            && !detailString.matches("^ *\\d*(%|免税|不征税|出口零税率|普通零税率)\\S*")
+                            || detailStringArray.length > i + 1
+                                    && detailStringArray[i + 1].matches("^ *\\d*(%|免税|不征税|出口零税率|普通零税率)\\S*")) {
+                        lastDetail = detailList.get(j);
+                        lastDetail.setName(detailNameStringArray[m]);
+                        j++;
+                    } else if (null != lastDetail && StringUtils.isNotBlank(detailNameStringArray[m])) {
+                        if (skipList.size() > h) {
+                            String skip = skipList.get(h);
+                            if (detailString.endsWith(skip)) {
+                                if (detailString.equals(skip)) {
+                                    m--;
+                                } else {
+                                    lastDetail.setName(lastDetail.getName() + detailNameStringArray[m]);
+                                }
+                                lastDetail.setModel(lastDetail.getModel() + skip);
+                                h++;
+                            } else {
+                                lastDetail.setName(lastDetail.getName() + detailNameStringArray[m]);
+                            }
+                        } else {
+                            lastDetail.setName(lastDetail.getName() + detailNameStringArray[m]);
+                        }
+                    }
                 }
                 i++;
+                m++;
             }
             invoice.setDetailList(detailList);
         }
-        
         return invoice;
 
     }
