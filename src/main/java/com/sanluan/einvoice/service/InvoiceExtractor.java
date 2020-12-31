@@ -240,7 +240,7 @@ public class InvoiceExtractor {
             for (String detailString : detailPriceStringArray) {
                 Detail detail = new Detail();
                 detail.setName("");
-                String[] itemArray = StringUtils.split(detailString, "\s");
+                String[] itemArray = StringUtils.split(detailString, " ");
                 if (2 == itemArray.length) {
                     detail.setAmount(new BigDecimal(itemArray[0]));
                     detail.setTaxAmount(new BigDecimal(itemArray[1]));

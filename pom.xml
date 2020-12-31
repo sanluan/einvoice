@@ -11,8 +11,8 @@
     <packaging>jar</packaging>
 
     <properties>
-        <java.version>1.8</java.version>
         <spring.boot.version>2.3.5.RELEASE</spring.boot.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding> 
     </properties>
 
     <dependencyManagement>
@@ -79,8 +79,8 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
