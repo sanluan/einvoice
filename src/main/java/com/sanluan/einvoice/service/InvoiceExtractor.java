@@ -141,7 +141,7 @@ public class InvoiceExtractor {
                 model = positionListMap.get("规格型号").get(0);
             } else {
                 model = positionListMap.get("车牌号").get(0);
-                model.setX(model.getX() - 22);
+                model.setX(model.getX() - 15);
             }
 
             List<Position> account = positionListMap.get("开户行及账号");
@@ -174,7 +174,7 @@ public class InvoiceExtractor {
                 }
             }
             {
-                int x = Math.round(model.getX()) - 10;
+                int x = Math.round(model.getX()) - 18;
                 int y = Math.round(taxRate.getY()) + 5; // 用税率的y坐标作参考
                 int h = Math.round(amount.getY()) - Math.round(taxRate.getY()) - 25; // 价税合计的y坐标减去税率的y坐标
                 detailStripper.addRegion("detail", new Rectangle(0, y, pageWidth, h));
