@@ -98,17 +98,20 @@ public class InvoiceExtractor {
             }
             if (allText.indexOf("通行费") > 0 && allText.indexOf("车牌号") > 0) {
                 invoice.setType("通行费");
-            } else {
-                Pattern type00Pattern = Pattern.compile("(?<p>\\S*)通发票");
-                Matcher m00 = type00Pattern.matcher(allText);
-                if (m00.find()) {
-                    invoice.setTitle(m00.group("p").replaceAll("(?:国|统|一|发|票|监|制)", "") + "通发票");
+            }
+            Pattern type00Pattern = Pattern.compile("(?<p>\\S*)通发票");
+            Matcher m00 = type00Pattern.matcher(allText);
+            if (m00.find()) {
+                invoice.setTitle(m00.group("p").replaceAll("(?:国|统|一|发|票|监|制)", "") + "通发票");
+                if (null == invoice.getType()) {
                     invoice.setType("普通发票");
-                } else {
-                    Pattern type01Pattern = Pattern.compile("(?<p>\\S*)用发票");
-                    Matcher m01 = type01Pattern.matcher(allText);
-                    if (m01.find()) {
-                        invoice.setTitle(m01.group("p").replaceAll("(?:国|统|一|发|票|监|制)", "") + "用发票");
+                }
+            } else {
+                Pattern type01Pattern = Pattern.compile("(?<p>\\S*)用发票");
+                Matcher m01 = type01Pattern.matcher(allText);
+                if (m01.find()) {
+                    invoice.setTitle(m01.group("p").replaceAll("(?:国|统|一|发|票|监|制)", "") + "用发票");
+                    if (null == invoice.getType()) {
                         invoice.setType("专用发票");
                     }
                 }
@@ -116,7 +119,7 @@ public class InvoiceExtractor {
         }
         PDFKeyWordPosition kwp = new PDFKeyWordPosition();
         Map<String, List<Position>> positionListMap = kwp
-                .getCoordinate(Arrays.asList("机器编号", "税率", "价税合计", "合计", "开票日期", "规格型号", "开户行及账号", "密", "码", "区"), doc);
+                .getCoordinate(Arrays.asList("机器编号", "税率", "价税合计", "合计", "开票日期", "规格型号", "车牌号", "开户行及账号", "密", "码", "区"), doc);
 
         PDFTextStripperByArea stripper = new PDFTextStripperByArea();
         stripper.setSortByPosition(true);
@@ -133,7 +136,14 @@ public class InvoiceExtractor {
             Position taxRate = positionListMap.get("税率").get(0);
             Position totalAmount = positionListMap.get("价税合计").get(0);
             Position amount = positionListMap.get("合计").get(0);
-            Position model = positionListMap.get("规格型号").get(0);
+            Position model = null;
+            if (!positionListMap.get("规格型号").isEmpty()) {
+                model = positionListMap.get("规格型号").get(0);
+            } else {
+                model = positionListMap.get("车牌号").get(0);
+                model.setX(model.getX() - 22);
+            }
+
             List<Position> account = positionListMap.get("开户行及账号");
             Position buyer;
             Position seller;
@@ -166,7 +176,7 @@ public class InvoiceExtractor {
             {
                 int x = Math.round(model.getX()) - 10;
                 int y = Math.round(taxRate.getY()) + 5; // 用税率的y坐标作参考
-                int h = Math.round(amount.getY()) - Math.round(taxRate.getY()) - 20; // 价税合计的y坐标减去税率的y坐标
+                int h = Math.round(amount.getY()) - Math.round(taxRate.getY()) - 25; // 价税合计的y坐标减去税率的y坐标
                 detailStripper.addRegion("detail", new Rectangle(0, y, pageWidth, h));
                 stripper.addRegion("detailName", new Rectangle(0, y, x, h));
                 stripper.addRegion("detailPrice", new Rectangle(x, y, pageWidth, h));
