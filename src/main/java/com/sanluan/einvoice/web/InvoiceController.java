@@ -58,11 +58,11 @@ public class InvoiceController {
     }
 
     @RequestMapping(value = "/extrat")
-    public Invoice extrat(@RequestParam("file") MultipartFile file, String url) {
+    public Invoice extrat(@RequestParam(value = "file", required = false) MultipartFile file, String url) {
         String fileName = getDateFormat(FILE_NAME_FORMAT_STRING).format(new Date());
         File dest = new File(backupPath, fileName + ".pdf");
         dest.getParentFile().mkdirs();
-        if (!file.isEmpty()) {
+        if (null != file && !file.isEmpty()) {
             try {
                 FileUtils.copyInputStreamToFile(file.getInputStream(), dest);
             } catch (IOException e) {
