@@ -33,11 +33,11 @@ public class InvoiceExtractor {
         int pageWidth = Math.round(firstPage.getCropBox().getWidth());
         PDFTextStripper textStripper = new PDFTextStripper();
         textStripper.setSortByPosition(true);
-        String allText = textStripper.getText(doc);
+        String fullText = textStripper.getText(doc);
         if (firstPage.getRotation() != 0) {
             pageWidth = Math.round(firstPage.getCropBox().getHeight());
         }
-        allText = replace(allText).replaceAll("（", "(").replaceAll("）", ")").replaceAll("￥", "¥");
+        String allText = replace(fullText).replaceAll("（", "(").replaceAll("）", ")").replaceAll("￥", "¥");
         {
             String reg = "机器编号:(?<machineNumber>\\d{12})|发票代码:(?<code>\\d{12})|发票号码:(?<number>\\d{8})|:(?<date>\\d{4}年\\d{2}月\\d{2}日)"
                     + "|校验码:(?<checksum>\\d{20}|\\S{4,})";
@@ -58,9 +58,25 @@ public class InvoiceExtractor {
             }
         }
         {
-            String reg = "合计¥(?<amount>[^ \\f\\n\\r\\t\\v\\*]*)(?:¥(?<taxAmount>\\S*)|\\*+)\\s";
+            String reg = "合计¥?(?<amount>[^ \\f\\n\\r\\t\\v\\*]*)(?:¥?(?<taxAmount>\\S*)|\\*+)\\s";
             Pattern pattern = Pattern.compile(reg);
             Matcher matcher = pattern.matcher(allText);
+            if (matcher.find()) {
+                try {
+                    invoice.setAmount(new BigDecimal(matcher.group("amount")));
+                } catch (Exception e) {
+                }
+                try {
+                    invoice.setTaxAmount(new BigDecimal(matcher.group("taxAmount")));
+                } catch (Exception e) {
+                    invoice.setTaxAmount(new BigDecimal(0));
+                }
+            }
+        }
+        if (null == invoice.getAmount()) {
+            String reg = "合\\u0020*计\\u0020*¥?(?<amount>[^ ]*)\\u0020+¥?(?:(?<taxAmount>\\S*)|\\*+)\\s";
+            Pattern pattern = Pattern.compile(reg);
+            Matcher matcher = pattern.matcher(fullText);
             if (matcher.find()) {
                 try {
                     invoice.setAmount(new BigDecimal(matcher.group("amount")));
@@ -75,7 +91,7 @@ public class InvoiceExtractor {
             }
         }
         {
-            String reg = "价税合计\\u0028大写\\u0029(?<amountString>\\S*)\\u0028小写\\u0029¥(?<amount>\\S*)\\s";
+            String reg = "价税合计\\u0028大写\\u0029(?<amountString>\\S*)\\u0028小写\\u0029¥?(?<amount>\\S*)\\s";
             Pattern pattern = Pattern.compile(reg);
             Matcher matcher = pattern.matcher(allText);
             if (matcher.find()) {
@@ -174,7 +190,7 @@ public class InvoiceExtractor {
                 }
             }
             {
-                int x = Math.round(model.getX()) - 18;
+                int x = Math.round(model.getX()) - 13;
                 int y = Math.round(taxRate.getY()) + 5; // 用税率的y坐标作参考
                 int h = Math.round(amount.getY()) - Math.round(taxRate.getY()) - 25; // 价税合计的y坐标减去税率的y坐标
                 detailStripper.addRegion("detail", new Rectangle(0, y, pageWidth, h));
