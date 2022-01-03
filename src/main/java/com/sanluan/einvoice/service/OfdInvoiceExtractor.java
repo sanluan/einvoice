@@ -19,11 +19,10 @@ import org.springframework.util.StreamUtils;
 /**
  * 专用于处理电子发票识别的类
  * 
- * @author arthurlee
  *
  */
 
-public class OdfInvoiceExtractor {
+public class OfdInvoiceExtractor {
 
     public static Invoice extract(File file) throws IOException, DocumentException {
         ZipFile zipFile = new ZipFile(file);
@@ -44,7 +43,8 @@ public class OdfInvoiceExtractor {
         invoice.setChecksum(root.elementTextTrim("InvoiceCheckCode"));
         invoice.setAmount(new BigDecimal(root.elementTextTrim("TaxExclusiveTotalAmount")));
         invoice.setTaxAmount(new BigDecimal(root.elementTextTrim("TaxTotalAmount")));
-        invoice.setTotalAmountString(root.elementTextTrim(""));
+        int ind = content.indexOf("圆整</ofd:TextCode>");
+        invoice.setTotalAmountString(content.substring(content.lastIndexOf(">", ind) + 1, ind + 2));
         invoice.setTotalAmount(new BigDecimal(root.elementTextTrim("TaxInclusiveTotalAmount")));
         invoice.setPayee(root.elementTextTrim("Payee"));
         invoice.setReviewer(root.elementTextTrim("Checker"));
@@ -57,7 +57,7 @@ public class OdfInvoiceExtractor {
         } else if (invoice.getTitle().contains("通行费")) {
             invoice.setType("通行费");
         }
-        invoice.setPassword(root.elementTextTrim("TaxControlCode"));
+        invoice.setPassword(root.elementText("TaxControlCode"));
         Element buyer = root.element("Buyer");
         {
             invoice.setBuyerName(buyer.elementTextTrim("BuyerName"));

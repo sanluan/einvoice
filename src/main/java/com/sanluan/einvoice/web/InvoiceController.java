@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.sanluan.einvoice.service.Invoice;
-import com.sanluan.einvoice.service.OdfInvoiceExtractor;
+import com.sanluan.einvoice.service.OfdInvoiceExtractor;
 import com.sanluan.einvoice.service.PdfInvoiceExtractor;
 
 @RestController
@@ -63,10 +63,10 @@ public class InvoiceController {
     public Invoice extrat(@RequestParam(value = "file", required = false) MultipartFile file, String url) {
         String fileName = getDateFormat(FILE_NAME_FORMAT_STRING).format(new Date());
         File dest = null;
-        boolean odf = false;
+        boolean ofd = false;
         if (null != file && !file.isEmpty()) {
-            if (file.getName().toLowerCase().endsWith(".ofd")) {
-                odf = true;
+            if (file.getOriginalFilename().toLowerCase().endsWith(".ofd")) {
+                ofd = true;
                 dest = new File(backupPath, fileName + ".ofd");
             } else {
                 dest = new File(backupPath, fileName + ".pdf");
@@ -78,7 +78,7 @@ public class InvoiceController {
             }
         } else if (null != url) {
             if (url.toLowerCase().endsWith(".ofd")) {
-                odf = true;
+                ofd = true;
                 dest = new File(backupPath, fileName + ".ofd");
             } else {
                 dest = new File(backupPath, fileName + ".pdf");
@@ -100,8 +100,8 @@ public class InvoiceController {
         Invoice result = null;
         try {
             if (null != dest) {
-                if (odf) {
-                    result = OdfInvoiceExtractor.extract(dest);
+                if (ofd) {
+                    result = OfdInvoiceExtractor.extract(dest);
                 } else {
                     result = PdfInvoiceExtractor.extract(dest);
                 }
@@ -113,6 +113,7 @@ public class InvoiceController {
                 result.setTitle("error");
             }
         } catch (IOException | DocumentException e) {
+            e.printStackTrace();
             result = new Invoice();
             result.setTitle("error");
         }
