@@ -24,7 +24,7 @@ import org.apache.pdfbox.text.PDFTextStripperByArea;
  *
  */
 
-public class InvoiceExtractor {
+public class PdfInvoiceExtractor {
 
     public static Invoice extract(File file) throws IOException {
         Invoice invoice = new Invoice();

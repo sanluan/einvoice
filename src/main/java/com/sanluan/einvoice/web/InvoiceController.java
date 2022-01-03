@@ -18,6 +18,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.dom4j.DocumentException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -25,7 +26,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.sanluan.einvoice.service.Invoice;
-import com.sanluan.einvoice.service.InvoiceExtractor;
+import com.sanluan.einvoice.service.OdfInvoiceExtractor;
+import com.sanluan.einvoice.service.PdfInvoiceExtractor;
 
 @RestController
 @RequestMapping("/invoice")
@@ -60,14 +62,28 @@ public class InvoiceController {
     @RequestMapping(value = "/extrat")
     public Invoice extrat(@RequestParam(value = "file", required = false) MultipartFile file, String url) {
         String fileName = getDateFormat(FILE_NAME_FORMAT_STRING).format(new Date());
-        File dest = new File(backupPath, fileName + ".pdf");
-        dest.getParentFile().mkdirs();
+        File dest = null;
+        boolean odf = false;
         if (null != file && !file.isEmpty()) {
+            if (file.getName().toLowerCase().endsWith(".ofd")) {
+                odf = true;
+                dest = new File(backupPath, fileName + ".ofd");
+            } else {
+                dest = new File(backupPath, fileName + ".pdf");
+            }
+            dest.getParentFile().mkdirs();
             try {
                 FileUtils.copyInputStreamToFile(file.getInputStream(), dest);
             } catch (IOException e) {
             }
         } else if (null != url) {
+            if (url.toLowerCase().endsWith(".ofd")) {
+                odf = true;
+                dest = new File(backupPath, fileName + ".ofd");
+            } else {
+                dest = new File(backupPath, fileName + ".pdf");
+            }
+            dest.getParentFile().mkdirs();
             try (CloseableHttpClient httpclient = HttpClients.custom().setDefaultRequestConfig(defaultRequestConfig).build();) {
                 HttpUriRequest request = new HttpGet(url);
                 try (CloseableHttpResponse response = httpclient.execute(request)) {
@@ -83,9 +99,20 @@ public class InvoiceController {
         }
         Invoice result = null;
         try {
-            result = InvoiceExtractor.extract(dest);
-            dest.delete();
-        } catch (IOException e) {
+            if (null != dest) {
+                if (odf) {
+                    result = OdfInvoiceExtractor.extract(dest);
+                } else {
+                    result = PdfInvoiceExtractor.extract(dest);
+                }
+                if (null != result.getAmount()) {
+                    dest.delete();
+                }
+            } else {
+                result = new Invoice();
+                result.setTitle("error");
+            }
+        } catch (IOException | DocumentException e) {
             result = new Invoice();
             result.setTitle("error");
         }
