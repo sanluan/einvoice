@@ -317,10 +317,13 @@ public class PdfInvoiceExtractor {
                 if (m < detailNameStringArray.length) {
                     if (detailString.matches("\\S+\\d*(%|免税|不征税|出口零税率|普通零税率)\\S*")
                             && !detailString.matches("^ *\\d*(%|免税|不征税|出口零税率|普通零税率)\\S*")
+                            && detailString.matches("\\S+\\d+%[\\-\\d]+\\S*")
                             || detailStringArray.length > i + 1
                                     && detailStringArray[i + 1].matches("^ *\\d*(%|免税|不征税|出口零税率|普通零税率)\\S*")) {
-                        lastDetail = detailList.get(j);
-                        lastDetail.setName(detailNameStringArray[m]);
+                        if (j < detailList.size()) {
+                            lastDetail = detailList.get(j);
+                            lastDetail.setName(detailNameStringArray[m]);
+                        }
                         j++;
                     } else if (null != lastDetail && StringUtils.isNotBlank(detailNameStringArray[m])) {
                         if (skipList.size() > h) {
