@@ -225,7 +225,7 @@ public class PdfInvoiceExtractor {
 
         invoice.setPassword(StringUtils.trim(stripper.getTextForRegion("password")));
 
-        String reg = "名称:(?<name>\\S*)|纳税人识别号:(?<code>\\S*)|地址、电话:(?<address>\\S*)|开户行及账号:(?<account>\\S*)|电子支付标识:(?<account2>\\\\S*)";
+        String reg = "名称:(?<name>\\S*)|纳税人识别号:(?<code>\\S*)|地址、电话:(?<address>\\S*)|开户行及账号:(?<account>\\S*)|电子支付标识:(?<account2>\\S*)";
         {
             String buyer = replace(stripper.getTextForRegion("buyer"));
             Pattern pattern = Pattern.compile(reg);
