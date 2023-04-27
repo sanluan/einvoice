@@ -4,14 +4,15 @@
 
 电子发票识别，可识别大部分地区的电子普票 电子专票 文件类型支持 pdf ofd
 
+笔记本电脑测试单线程6秒100张pdf电子发票
+
 在线识别页面 http://www.heycore.com/invoice.html
 
 ## 效果预览
 
 ![](preview.jpg)
 
-pdf识别部分参考改进了 https://github.com/fantasyxxj/einvoice
-本地测试16秒单线程解析100张票的改进后6秒单线程100张
+pdf识别部分参考改进了 https://github.com/fantasyxxj/einvoice 改进前16秒单线程解析100张票
 
 pdf识别非ocr识别，识别原理：按常规票面布局位置定位与文字匹配双重规则对票面文字解析
 
