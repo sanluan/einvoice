@@ -32,7 +32,7 @@ public class PdfRegularInvoiceService {
     public static Invoice getRegularInvoice(String fullText, String allText, int pageWidth, PDDocument doc, PDPage firstPage ) throws IOException {
         Invoice invoice = new Invoice();
         {
-            String reg = "机器编号:(?<machineNumber>\\d{12})|发票代码:(?<code>\\d{12})|发票号码:(?<number>1\\d{8})|:(?<date>\\d{4}年\\d{2}月\\d{2}日)"
+            String reg = "机器编号:(?<machineNumber>\\d{12})|发票代码:(?<code>\\d{12})|发票号码:(?<number>\\d{8})|:(?<date>\\d{4}年\\d{2}月\\d{2}日)"
                     + "|校验码:(?<checksum>\\d{20}|\\S{4,})";
             Pattern pattern = Pattern.compile(reg);
             Matcher matcher = pattern.matcher(allText);
@@ -51,7 +51,7 @@ public class PdfRegularInvoiceService {
             }
         }
         {
-            String reg = "合计¥?(?<amount>[^ \\f\\n\\r\\t\\v\\*]*)(?:¥?(?<taxAmount>\\S*)|\\*+)\\s";
+            String reg = "合计¥?(?<amount>\\d+\\.\\d{2})¥?(?<taxAmount>\\d+\\.\\d{2})?";
             Pattern pattern = Pattern.compile(reg);
             Matcher matcher = pattern.matcher(allText);
             if (matcher.find()) {
