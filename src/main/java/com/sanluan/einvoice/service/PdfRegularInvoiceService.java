@@ -51,7 +51,7 @@ public class PdfRegularInvoiceService {
             }
         }
         {
-            String reg = "合计¥?(?<amount>[^ \\f\\n\\r\\t\\v\\*]*)(?:¥?(?<taxAmount>\\S*)|\\*+)\\s";
+            String reg = "合计¥?(?<amount>\\d+\\.\\d{2})¥?(?<taxAmount>\\d+\\.\\d{2})?";
             Pattern pattern = Pattern.compile(reg);
             Matcher matcher = pattern.matcher(allText);
             if (matcher.find()) {
